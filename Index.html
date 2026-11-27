@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>Lớp nhạc Rosa - Điểm danh</title>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<style>
+  :root { --rose:#e11d74; --rose-soft:#fde7f1; --ink:#2b1d26; --muted:#7a6470; --ok:#15803d; --warn:#b45309; --bad:#dc2626; color-scheme: light; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background:#fff7fa; color:var(--ink); }
+  header { background:var(--rose); color:#fff; padding:14px 16px; text-align:center; }
+  header h1 { margin:0; font-size:20px; }
+  .banner { background:#fef3c7; color:#78350f; padding:12px 14px; font-size:14px; line-height:1.5; border-bottom:1px solid #fde68a; }
+  .banner b { color:#451a03; }
+  nav { display:flex; background:#fff; position:sticky; top:0; z-index:5; box-shadow:0 1px 3px rgba(0,0,0,.08); }
+  nav button { flex:1; padding:14px 8px; border:0; background:none; font-size:15px; font-weight:600; color:var(--muted); cursor:pointer; }
+  nav button.active { color:var(--rose); border-bottom:3px solid var(--rose); }
+  main { max-width:560px; margin:0 auto; padding:12px; }
+  .card { background:#fff; border-radius:16px; padding:14px; box-shadow:0 2px 8px rgba(0,0,0,.06); margin-bottom:12px; }
+  .cam { position:relative; width:100%; aspect-ratio:3/4; background:#111; border-radius:14px; overflow:hidden; display:flex; align-items:center; justify-content:center; color:#bbb; font-size:14px; text-align:center; padding:10px; }
+  .cam video { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  .status { min-height:48px; margin:12px 0 8px; font-size:16px; font-weight:600; text-align:center; line-height:1.5; }
+  .status.ok { color:var(--ok); } .status.warn { color:var(--warn); } .status.bad { color:var(--bad); }
+  .nameBox { text-align:center; font-size:26px; font-weight:800; color:var(--rose); min-height:34px; margin-bottom:8px; }
+  .btn { display:block; width:100%; padding:15px; border:0; border-radius:12px; background:var(--rose); color:#fff; font-size:17px; font-weight:700; margin-top:8px; cursor:pointer; text-align:center; }
+  .btn:disabled { background:#e7b3cb; cursor:not-allowed; }
+  .btn.ghost { background:#fff; color:var(--rose); border:2px solid var(--rose); }
+  .fileBtn { display:block; width:100%; padding:13px; border:2px dashed var(--rose); border-radius:12px; color:var(--rose); font-weight:700; text-align:center; margin-top:8px; cursor:pointer; }
+  .fileBtn input { display:none; }
+  h3 { margin:0 0 8px; font-size:16px; }
+  ul { list-style:none; padding:0; margin:0; max-height:220px; overflow:auto; }
+  li { padding:8px 0; border-bottom:1px solid #f3e3ea; font-size:15px; }
+  label { display:block; font-size:14px; color:var(--muted); margin-bottom:10px; }
+  input { display:block; width:100%; margin-top:4px; padding:12px; font-size:16px; border:1px solid #e5c9d6; border-radius:10px; background:#fff; color:var(--ink); }
+  input:focus { outline:2px solid var(--rose-soft); border-color:var(--rose); }
+  #anhPreview { width:100%; border-radius:12px; margin-top:10px; display:none; }
+  .hint { font-size:13px; color:var(--muted); margin:6px 0 0; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div id="banner" class="banner" hidden>
+  <b>Bạn đang mở trong Messenger/Zalo, camera thường bị chặn.</b><br>
+  Bấm dấu ba chấm (⋯) ở góc trên bên phải, chọn <b>"Mở bằng trình duyệt"</b> hoặc <b>"Open in Chrome"</b>, rồi dùng trang đó.
+</div>
+
+<header><h1 id="tenLop">Lớp nhạc Rosa</h1></header>
+
+<nav>
+  <button id="tabDiemDanh" class="active" onclick="showTab('diemdanh')">Điểm danh</button>
+  <button id="tabDangKy" onclick="showTab('dangky')">Đăng ký học viên</button>
+</nav>
+
+<main>
+  <!-- ===== TRANG ĐIỂM DANH ===== -->
+  <section id="pageDiemDanh">
+    <div class="card">
+      <div id="camHolder" class="cam">Camera chưa bật</div>
+      <p id="trangThai" class="status">Nhấn nút bên dưới để bật camera và điểm danh</p>
+      <div id="nhanDien" class="nameBox"></div>
+      <button id="btnBat" class="btn" onclick="batDiemDanh()">Bật camera và điểm danh</button>
+      <button id="btnTat" class="btn ghost" onclick="tatDiemDanh()" style="display:none">Tắt camera</button>
+      <p class="hint">Nếu không nghe loa: kiểm tra âm lượng và tắt chế độ im lặng trên máy.</p>
+    </div>
+    <div class="card">
+      <h3>Điểm danh trong phiên này</h3>
+      <ul id="nhatKy"></ul>
+    </div>
+  </section>
+
+  <!-- ===== TRANG ĐĂNG KÝ ===== -->
+  <section id="pageDangKy" hidden>
+    <div class="card">
+      <h3>1. Ảnh khuôn mặt học viên</h3>
+      <div id="camHolder2" class="cam">Camera chưa bật</div>
+      <button class="btn ghost" onclick="batCameraDK()">Bật camera</button>
+      <button id="btnChup" class="btn" onclick="chupAnh()">Chụp ảnh</button>
+      <label class="fileBtn">
+        Hoặc chọn ảnh có sẵn từ máy
+        <input type="file" accept="image/*" onchange="chonAnhTuMay(event)">
+      </label>
+      <img id="anhPreview" alt="Ảnh học viên">
+      <p id="dkTrangThai" class="status">Đưa khuôn mặt học viên vào giữa khung, chỉ một người, đủ sáng.</p>
+    </div>
+
+    <div class="card">
+      <h3>2. Thông tin học viên</h3>
+      <form id="formDK" onsubmit="return guiDangKy(event)">
+        <label>Họ và tên *<input name="hoTen" required></label>
+        <label>Năm sinh * (4 chữ số)<input name="namSinh" inputmode="numeric" maxlength="4" required></label>
+        <label>Số điện thoại *<input name="soDienThoai" inputmode="tel" required></label>
+        <label>Địa chỉ<input name="diaChi"></label>
+        <label>Khóa học *<input name="khoaHoc" placeholder="VD: Piano sơ cấp" required></label>
+        <label>Lịch học trong tuần *<input name="lichHocTuan" placeholder="VD: Thứ 2, Thứ 4 - 18:00" required></label>
+        <label>Email phụ huynh<input name="emailPhuHuynh" type="email"></label>
+        <button id="btnGui" class="btn" type="submit" disabled>Đăng ký học viên</button>
+      </form>
+      <p class="hint">Nút Đăng ký chỉ mở sau khi đã có ảnh khuôn mặt (chụp hoặc chọn từ máy).</p>
+    </div>
+  </section>
+</main>
+
+<script>
+  // ====== CẤU HÌNH: DÁN LINK WEB APP APPS SCRIPT (kết thúc bằng /exec) ======
+  const API_URL = 'PASTE_LINK_APPS_SCRIPT_EXEC_VAO_DAY';
+
+  const MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@master/weights';
+  const COOLDOWN_MS = 60 * 1000;      // cùng một học viên không chào lại trong 60 giây
+  const CHU_KY_MS = 250;              // tốc độ quét khuôn mặt
+
+  // ====== TRẠNG THÁI ======
+  let cfg = { tenLop: 'Lớp nhạc Rosa', nguong: 0.5 };
+  let danhSach = [];                  // [{maHV, hoTen, descriptor: Float32Array}]
+  let modelsReady = false;
+  let camStream = null;
+  let dangChay = false;
+  let loopId = 0;
+  const cooldown = {};
+  let anhDK = null;
+  let descDK = null;
+
+  // Một thẻ video duy nhất, di chuyển giữa 2 trang để chỉ mở camera một lần
+  const video = document.createElement('video');
+  video.setAttribute('playsinline', '');
+  video.setAttribute('muted', '');
+  video.muted = true;
+  video.autoplay = true;
+
+  const $ = id => document.getElementById(id);
+
+  // Messenger, Facebook, Zalo, Instagram mở link trong trình duyệt riêng, thường chặn camera
+  function dangTrongAppKhac() {
+    return /FBAN|FBAV|FB_IAB|Messenger|Zalo|Instagram/i.test(navigator.userAgent || '');
+  }
+
+  // ====== GỌI API APPS SCRIPT ======
+  // Gửi dạng text/plain để trình duyệt không cần bước kiểm tra CORS phức tạp
+  async function goiApi(action, payload) {
+    if (!API_URL || API_URL.indexOf('PASTE_') === 0) {
+      throw new Error('Chưa điền API_URL trong file index.html.');
+    }
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify(Object.assign({ action: action }, payload || {}))
+    });
+    if (!res.ok) throw new Error('Máy chủ trả lỗi HTTP ' + res.status);
+    return res.json();
+  }
+
+  // ====== KHỞI ĐỘNG ======
+  window.addEventListener('load', async () => {
+    if (dangTrongAppKhac()) $('banner').hidden = false;
+    try {
+      const c = await goiApi('config');
+      cfg.tenLop = c.tenLop;
+      cfg.nguong = c.nguong;
+      $('tenLop').textContent = c.tenLop;
+    } catch (e) {
+      console.error(e);
+    }
+    taiDanhSach().catch(err => console.error(err));
+  });
+
+  async function taiDanhSach() {
+    const kq = await goiApi('descriptors');
+    if (!kq.ok) throw new Error(kq.message || 'Không tải được danh sách');
+    danhSach = kq.list.map(p => ({ maHV: p.maHV, hoTen: p.hoTen, descriptor: Float32Array.from(p.descriptor) }));
+    return danhSach.length;
+  }
+
+  // ====== TIỆN ÍCH ======
+  function setStatus(el, msg, type) {
+    el.textContent = msg;
+    el.className = 'status' + (type ? ' ' + type : '');
+  }
+  const setTrangThai = (msg, type) => setStatus($('trangThai'), msg, type);
+  const setDK = (msg, type) => setStatus($('dkTrangThai'), msg, type);
+
+  function thongBaoLoi(e) {
+    const loi = e && e.name;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      return 'Trình duyệt này không mở được camera. Hãy mở bằng Chrome (Android) hoặc Safari (iPhone).';
+    }
+    if (loi === 'NotAllowedError' || loi === 'SecurityError') {
+      if (dangTrongAppKhac()) {
+        return 'Messenger/Zalo chặn camera. Bấm dấu ⋯ góc trên phải > "Mở bằng trình duyệt" (Chrome), rồi thử lại.';
+      }
+      return 'Trình duyệt chưa cho phép dùng camera. Bấm biểu tượng ổ khóa cạnh địa chỉ web > Quyền > Camera > Cho phép, rồi tải lại trang.';
+    }
+    if (loi === 'NotFoundError') return 'Không tìm thấy camera trên máy.';
+    if (loi === 'NotReadableError') return 'Camera đang được app khác dùng. Hãy đóng app đó rồi thử lại.';
+    return (e && e.message) ? e.message : String(e);
+  }
+
+  function khoangCach(a, b) {
+    let s = 0;
+    for (let i = 0; i < a.length; i++) { const d = a[i] - b[i]; s += d * d; }
+    return Math.sqrt(s);
+  }
+
+  function timNguoiGanNhat(desc) {
+    let best = null, bestD = Infinity;
+    for (const p of danhSach) {
+      const d = khoangCach(desc, p.descriptor);
+      if (d < bestD) { bestD = d; best = p; }
+    }
+    return (best && bestD <= cfg.nguong) ? best : null;
+  }
+
+  // Loa tiếng Việt. Gọi trong sự kiện bấm nút để mở khóa âm thanh trên iPhone/Android.
+  function moKhoaAmThanh() {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.speak(new SpeechSynthesisUtterance(''));
+  }
+  function noi(text) {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'vi-VN';
+    u.rate = 0.95;
+    const vi = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().indexOf('vi') === 0);
+    if (vi) u.voice = vi;
+    speechSynthesis.speak(u);
+  }
+
+  // ====== CAMERA & MÔ HÌNH ======
+  async function taiModel() {
+    if (modelsReady) return;
+    if (typeof faceapi === 'undefined') throw new Error('Không tải được thư viện nhận diện (face-api.js). Kiểm tra kết nối mạng.');
+    setTrangThai('Đang tải mô hình nhận diện (lần đầu có thể mất 10-20 giây)...');
+    await Promise.all([
+      faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+      faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+      faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
+    ]);
+    modelsReady = true;
+  }
+
+  function detectOpts() {
+    return new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
+  }
+
+  async function batCamera(holder) {
+    holder.innerHTML = '';
+    holder.appendChild(video);
+    if (camStream && camStream.active) {
+      await video.play().catch(() => {});
+      return;
+    }
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const e = new Error('no-media'); e.name = 'NotSupportedError'; throw e;
+    }
+    camStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+      audio: false
+    });
+    video.srcObject = camStream;
+    await video.play();
+    await new Promise(r => {
+      if (video.readyState >= 2) return r();
+      video.onloadeddata = () => r();
+    });
+  }
+
+  function tatCamera() {
+    if (camStream) camStream.getTracks().forEach(t => t.stop());
+    camStream = null;
+    video.srcObject = null;
+  }
+
+  // ====== CHUYỂN TRANG ======
+  function showTab(tab) {
+    const laDiemDanh = tab === 'diemdanh';
+    $('pageDiemDanh').hidden = !laDiemDanh;
+    $('pageDangKy').hidden = laDiemDanh;
+    $('tabDiemDanh').classList.toggle('active', laDiemDanh);
+    $('tabDangKy').classList.toggle('active', !laDiemDanh);
+    dangChay = false;                       // dừng vòng nhận diện
+    if (camStream) {
+      const holder = laDiemDanh ? $('camHolder') : $('camHolder2');
+      holder.innerHTML = '';
+      holder.appendChild(video);
+    }
+    if (laDiemDanh) {
+      $('btnBat').style.display = 'block';
+      $('btnTat').style.display = 'none';
+    }
+  }
+
+  // ====== CHỨC NĂNG 2: ĐIỂM DANH ======
+  async function batDiemDanh() {
+    moKhoaAmThanh();
+    const btn = $('btnBat');
+    btn.disabled = true;
+    try {
+      await taiModel();
+      setTrangThai('Đang tải danh sách học viên...');
+      const soNguoi = await taiDanhSach();
+      await batCamera($('camHolder'));
+      dangChay = true;
+      btn.style.display = 'none';
+      $('btnTat').style.display = 'block';
+      setTrangThai(soNguoi ? 'Đưa khuôn mặt vào giữa khung hình' : 'Chưa có học viên nào trong hệ thống.', soNguoi ? '' : 'warn');
+      vongNhanDien();
+    } catch (e) {
+      console.error(e);
+      setTrangThai('Lỗi: ' + thongBaoLoi(e), 'bad');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function tatDiemDanh() {
+    dangChay = false;
+    loopId++;
+    tatCamera();
+    $('camHolder').innerHTML = 'Camera chưa bật';
+    $('btnBat').style.display = 'block';
+    $('btnTat').style.display = 'none';
+    $('nhanDien').textContent = '';
+    setTrangThai('Đã tắt camera.');
+  }
+
+  async function vongNhanDien() {
+    const id = ++loopId;
+    while (dangChay && id === loopId) {
+      if (modelsReady && video.readyState >= 2) {
+        try {
+          const kq = await faceapi.detectSingleFace(video, detectOpts())
+            .withFaceLandmarks()
+            .withFaceDescriptor();
+          if (!kq) {
+            $('nhanDien').textContent = '';
+            setTrangThai('Đưa khuôn mặt vào giữa khung hình');
+          } else {
+            const nguoi = timNguoiGanNhat(kq.descriptor);
+            if (nguoi) xuLyNhanDien(nguoi);
+            else {
+              $('nhanDien').textContent = '';
+              setTrangThai('Chưa nhận ra. Nếu là học viên mới, hãy đăng ký ở tab bên cạnh.', 'warn');
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      await new Promise(r => setTimeout(r, CHU_KY_MS));
+    }
+  }
+
+  function xuLyNhanDien(p) {
+    const now = Date.now();
+    if (cooldown[p.maHV] && now - cooldown[p.maHV] < COOLDOWN_MS) {
+      $('nhanDien').textContent = p.hoTen;
+      return;
+    }
+    cooldown[p.maHV] = now;
+    $('nhanDien').textContent = p.hoTen;
+    noi('Chào mừng ' + p.hoTen + ' tới ' + cfg.tenLop);
+    setTrangThai('Đang ghi nhận điểm danh...');
+
+    goiApi('attendance', { maHV: p.maHV })
+      .then(kq => hienKetQuaDiemDanh(kq))
+      .catch(err => {
+        delete cooldown[p.maHV];
+        setTrangThai('Lỗi kết nối: ' + err.message, 'bad');
+      });
+  }
+
+  function hienKetQuaDiemDanh(kq) {
+    if (!kq.ok) { setTrangThai(kq.message, 'bad'); return; }
+    if (kq.daDiemDanh) {
+      setTrangThai(kq.hoTen + ' đã được điểm danh hôm nay (' + kq.soBuoi + '/' + kq.soBuoiQuyDinh + ' buổi).', 'warn');
+      return;
+    }
+    let msg = 'Đã điểm danh: ' + kq.hoTen + ' (buổi ' + kq.soBuoi + '/' + kq.soBuoiQuyDinh + ')';
+    if (kq.daGuiHocPhi) msg += '. Đã gửi email thông báo đóng học phí.';
+    setTrangThai(msg, 'ok');
+    const li = document.createElement('li');
+    li.textContent = new Date().toLocaleTimeString('vi-VN') + ' - ' + kq.hoTen;
+    $('nhatKy').prepend(li);
+  }
+
+  // ====== CHỨC NĂNG 1: ĐĂNG KÝ ======
+  async function batCameraDK() {
+    try {
+      await taiModel();
+      await batCamera($('camHolder2'));
+      setDK('Camera đã bật. Đưa khuôn mặt học viên vào giữa khung rồi bấm Chụp ảnh.');
+    } catch (e) {
+      console.error(e);
+      setDK('Lỗi: ' + thongBaoLoi(e), 'bad');
+    }
+  }
+
+  function apDungAnh(canvas, faces) {
+    anhDK = canvas.toDataURL('image/jpeg', 0.8);
+    descDK = Array.from(faces[0].descriptor);
+    $('anhPreview').src = anhDK;
+    $('anhPreview').style.display = 'block';
+    $('btnGui').disabled = false;
+    setDK('Đã có ảnh khuôn mặt. Điền thông tin rồi bấm Đăng ký học viên.', 'ok');
+  }
+
+  async function chupAnh() {
+    try {
+      await taiModel();
+      if (!camStream) await batCamera($('camHolder2'));
+      else { $('camHolder2').innerHTML = ''; $('camHolder2').appendChild(video); }
+
+      const faces = await faceapi.detectAllFaces(video, detectOpts())
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+      if (faces.length !== 1) {
+        setDK(faces.length === 0
+          ? 'Không thấy khuôn mặt. Hãy nhìn thẳng vào camera, đủ sáng.'
+          : 'Có ' + faces.length + ' khuôn mặt. Chỉ để một học viên trong khung.', 'bad');
+        return;
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+      apDungAnh(canvas, faces);
+    } catch (e) {
+      console.error(e);
+      setDK('Lỗi: ' + thongBaoLoi(e), 'bad');
+    }
+  }
+
+  // Phương án dự phòng khi camera bị chặn: chọn ảnh có sẵn từ máy
+  async function chonAnhTuMay(ev) {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    try {
+      setDK('Đang xử lý ảnh...');
+      await taiModel();
+      const img = new Image();
+      img.src = URL.createObjectURL(file);
+      await img.decode();
+      const faces = await faceapi.detectAllFaces(img, detectOpts())
+        .withFaceLandmarks()
+        .withFaceDescriptors();
+      if (faces.length !== 1) {
+        setDK(faces.length === 0
+          ? 'Ảnh không có khuôn mặt rõ ràng. Hãy chọn ảnh khác.'
+          : 'Ảnh có ' + faces.length + ' khuôn mặt. Hãy chọn ảnh chỉ có một người.', 'bad');
+        return;
+      }
+      const scale = Math.min(1, 640 / img.naturalWidth);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.naturalWidth * scale);
+      canvas.height = Math.round(img.naturalHeight * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      apDungAnh(canvas, faces);
+    } catch (e) {
+      console.error(e);
+      setDK('Lỗi xử lý ảnh: ' + thongBaoLoi(e), 'bad');
+    } finally {
+      ev.target.value = '';
+    }
+  }
+
+  function guiDangKy(e) {
+    e.preventDefault();
+    if (!anhDK || !descDK) { setDK('Bạn chưa có ảnh khuôn mặt.', 'bad'); return false; }
+
+    const data = {};
+    new FormData($('formDK')).forEach((v, k) => { data[k] = String(v).trim(); });
+
+    if (!/^\d{4}$/.test(data.namSinh)) { setDK('Năm sinh phải gồm 4 chữ số.', 'bad'); return false; }
+    if (!/^[0-9+\s]{9,15}$/.test(data.soDienThoai)) { setDK('Số điện thoại không hợp lệ.', 'bad'); return false; }
+
+    $('btnGui').disabled = true;
+    setDK('Đang lưu hồ sơ...');
+    goiApi('register', { form: data, image: anhDK, descriptor: descDK })
+      .then(kq => {
+        if (!kq.ok) {
+          $('btnGui').disabled = false;
+          setDK(kq.message, 'bad');
+          return;
+        }
+        setDK('Đăng ký thành công: ' + kq.hoTen + ' (mã ' + kq.maHV + ').', 'ok');
+        $('formDK').reset();
+        anhDK = null;
+        descDK = null;
+        $('anhPreview').style.display = 'none';
+        $('btnGui').disabled = true;
+        taiDanhSach().catch(err => console.error(err));
+      })
+      .catch(err => {
+        $('btnGui').disabled = false;
+        setDK('Lỗi kết nối: ' + err.message, 'bad');
+      });
+    return false;
+  }
+</script>
+</body>
+</html>
